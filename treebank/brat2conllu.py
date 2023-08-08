@@ -1,6 +1,7 @@
 from os import walk, path
 from dataclasses import dataclass
 from typing import Any
+from logging import warning
 
 @dataclass
 class BratToken:
@@ -17,9 +18,9 @@ class BratToken:
 
 class BratTree:
 
-    def __init__(self, filename: str, fileno: int, text: str, token_dict: dict[str, dict[str, str]]):
+    def __init__(self, filename: str, sent_id: int, text: str, token_dict: dict[str, dict[str, str]]):
         self.filename = filename
-        self.fileno = fileno
+        self.sent_id = sent_id
         self.text = text
 
         to_token_id = {
@@ -53,17 +54,17 @@ class BratTree:
         if len(not_have_head) == 1:
             root_token = not_have_head[0]
             root_token.head_position = "0"
-            root_token.relation_type = "ROOT"
+            root_token.relation_type = "root"
 
     def to_conllu(self):
         first_line = f"# filename = {self.filename}"
-        second_line = f"# fileno = {self.fileno}"
+        second_line = f"# sent_id = {self.sent_id}"
         third_line = f"# text = {self.text}"
         body = '\n'.join(token.to_conllu() for token in self.tokens)
         return f"{first_line}\n{second_line}\n{third_line}\n{body}"
 
 
-def convert_ann_txt_pair_to_conllu(annfilepath: str, txtfilepath: str, fileno: int):
+def convert_ann_txt_pair_to_conllu(annfilepath: str, txtfilepath: str, sent_id: int):
 
     with open(txtfilepath, encoding="utf-8") as txtfile:
         text = txtfile.read().replace('\n', ' ').strip()
@@ -129,7 +130,7 @@ def convert_ann_txt_pair_to_conllu(annfilepath: str, txtfilepath: str, fileno: i
                         "head_id": [head_id],
                         "relation_type": [relation_type]
                     }
-    return BratTree(path.basename(annfilepath), fileno, text, token_dict).to_conllu()
+    return BratTree(path.basename(annfilepath), sent_id, text, token_dict).to_conllu()
 
 def find_ann_txt_pairs(root_directory: str):
     for dir, _, filenames in walk(root_directory):
@@ -139,8 +140,8 @@ def find_ann_txt_pairs(root_directory: str):
                 if txtfilename in filenames:
                     yield path.join(dir, filename), path.join(dir, txtfilename)
                 else:
-                    print(f"WARNING: '{filename}' doesn't have a corresponding '{txtfilename}' in {dir}")
+                    warning(f"'{filename}' doesn't have a corresponding '{txtfilename}' in {dir}")
 
 def generate_conllu_from_brat(brat_dir_path: str):
-    for fileno, (annfilepath, txtfilepath) in enumerate(find_ann_txt_pairs(brat_dir_path), start=1):
-        yield convert_ann_txt_pair_to_conllu(annfilepath, txtfilepath, fileno)
+    for sent_id, (annfilepath, txtfilepath) in enumerate(find_ann_txt_pairs(brat_dir_path), start=1):
+        yield convert_ann_txt_pair_to_conllu(annfilepath, txtfilepath, sent_id)
