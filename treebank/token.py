@@ -19,7 +19,7 @@ class Token:
     conllu_format = "{id}\t{form}\t{lemma}\t{upos}\t{xpos}\t{feats}\t{head}\t{deprel}\t{deps}\t{miscs}"
 
     def __init__(self, raw_conllu: str):
-        assert Token.pattern.fullmatch(raw_conllu), f"Wrong body format\n{raw_conllu}"
+        assert self.pattern.fullmatch(raw_conllu), f"Wrong body format\n{raw_conllu}"
         id, form, lemma, upos, xpos, feats, head, deprel, deps, miscs = raw_conllu.rstrip('\n').split('\t')
         assert id != head, f"Self-head\n{raw_conllu}"
         self.id = int(id)
@@ -31,13 +31,13 @@ class Token:
         self.head = int(head)
         self.deprel = deprel
         self.deps = deps
-        self.miscs = dict(misc.split('=') for misc in miscs.split('|'))
+        self.miscs = dict(misc.split('=') for misc in miscs.split('|')) if miscs != '_' else {}
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.id}: {self.form}>"
 
     def to_conllu(self):
-        return Token.conllu_format.format(
+        return self.conllu_format.format(
             id=self.id,
             form=self.form,
             lemma=self.lemma,
@@ -47,7 +47,7 @@ class Token:
             head=self.head,
             deprel=self.deprel,
             deps=self.deps,
-            miscs='|'.join(f"{k}={v}" for k, v in self.miscs.items())
+            miscs='|'.join(f"{k}={v}" for k, v in self.miscs.items()) if self.miscs else '_'
         )
 
     def to_dict(self):

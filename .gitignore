@@ -4,3 +4,5 @@ __pycache__
 .vscode
 *.conllu
 brat
+conllueditor-2.22.4
+edit.bat

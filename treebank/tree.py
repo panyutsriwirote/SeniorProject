@@ -10,19 +10,25 @@ class TreeDict(TypedDict):
 
 class Tree:
 
-    first_header_pattern = re.compile(r"^# filename = ([^\t_]+)$")
-    second_header_pattern = re.compile(r"^# sent_id = (\d+(\.\d+)?)$")
-    third_header_pattern = re.compile(r"^# text = ([^\t_]+)$")
+    header_pattern = re.compile(r"^# (?P<key>.+) = (?P<value>.+)$")
     conllu_format = "# filename = {filename}\n# sent_id = {sent_id}\n# text = {text}\n{body}"
 
     def __init__(self, raw_conllu: str):
-        first_header, second_header, third_header, *raw_lines = raw_conllu.split('\n')
-        assert (match := Tree.first_header_pattern.fullmatch(first_header)), f"Wrong first header format\n{first_header}"
-        self.filename: str = match[1]
-        assert (match := Tree.second_header_pattern.fullmatch(second_header)), f"Wrong second header format\n{second_header}"
-        self.sent_id: str = match[1]
-        assert (match := Tree.third_header_pattern.fullmatch(third_header)), f"Wrong third header format\n{third_header}"
-        self.text: str = match[1]
+        raw_lines = raw_conllu.split('\n')
+        headers: dict[str, str] = {}
+        for i, raw_line in enumerate(raw_lines):
+            match = self.header_pattern.fullmatch(raw_line)
+            if match:
+                headers[match["key"]] = match["value"]
+            else:
+                raw_lines = raw_lines[i:]
+                break
+        assert "filename" in headers, f"Missing 'filename' header\n{headers}"
+        assert "sent_id" in headers, f"Missing 'sent_id' header\n{headers}"
+        assert "text" in headers, f"Missing 'text' header\n{headers}"
+        self.filename = headers["filename"]
+        self.sent_id = headers["sent_id"]
+        self.text = headers["text"]
         self.__tokens: list[Token] = []
         found_root = False
         for i, raw_line in enumerate(raw_lines, start=1):
@@ -65,7 +71,7 @@ class Tree:
         return f"<{type(self).__name__} {self.filename}: {self.sent_id}>"
 
     def to_conllu(self):
-        return Tree.conllu_format.format(
+        return self.conllu_format.format(
             filename=self.filename,
             sent_id=self.sent_id,
             text=self.text,
