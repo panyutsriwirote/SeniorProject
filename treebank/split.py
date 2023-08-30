@@ -64,7 +64,7 @@ def split_conllu_into_sentences(*, input_path: str, output_path: str):
                 while root["relation_type"] != "root":
                     root = tokens[root["head_index"]]
                     loop_count += 1
-                    assert loop_count < 1000, f"Maximum loop count reached at token {old_token_id} ({token['token']}) in {filename}. There might be a cycle creating infinite loop."
+                    assert loop_count < len(tokens), f"Maximum loop count reached at token {old_token_id} ({token['token']}) in {filename}. There might be a cycle creating infinite loop."
                 if root is not current_root:
                     # New sentence reached
                     current_root = root

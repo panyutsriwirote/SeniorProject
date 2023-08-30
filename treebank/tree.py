@@ -50,6 +50,26 @@ class Tree:
                 token = self[token.head-1]
                 loop_counter += 1
                 assert loop_counter < len(self), f"Loop in {self} starting at {start_token}"
+        # Check for projectivity
+        tree_is_projective = True
+        for dep in self:
+            if dep.deprel == "root":
+                continue
+            head = self[dep.head - 1]
+            start, stop = (dep.id, head.id - 1) if dep.id < head.id else (head.id, dep.id - 1)
+            arc_is_projective = True
+            for token in self[start:stop]:
+                token = self[token.head - 1]
+                while token is not head:
+                    if token.deprel == "root":
+                        arc_is_projective = tree_is_projective = False
+                        break
+                    token = self[token.head - 1]
+                if not arc_is_projective:
+                    break
+            dep.arc_is_projective = arc_is_projective
+        self.is_projective = tree_is_projective
+        self.num_non_projective_arcs = 0 if tree_is_projective else sum(not token.arc_is_projective for token in self)
 
     def __len__(self):
         return len(self.__tokens)

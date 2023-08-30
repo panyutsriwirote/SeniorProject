@@ -10,10 +10,12 @@ class TreeBank:
 
     def __init__(self, trees: Iterable[Tree]):
         self.__trees = list(trees)
-        self.num_tokens = sum(len(tree) for tree in self)
         identifiers = Counter((tree.filename, tree.sent_id) for tree in self)
         non_unique = [key for key, count in identifiers.items() if count > 1]
         assert len(non_unique) == 0, f"Duplicate {Tree.__name__} identifiers (filename, sent_id) in {self}\n" + '\n'.join(f"({filename}, {sent_id})" for filename, sent_id in non_unique)
+        self.num_tokens = sum(len(tree) for tree in self)
+        self.num_non_projective_trees = sum(not tree.is_projective for tree in self)
+        self.num_non_projective_arcs = sum(tree.num_non_projective_arcs for tree in self)
 
     def __len__(self):
         return len(self.__trees)

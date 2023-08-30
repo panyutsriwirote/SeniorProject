@@ -32,6 +32,8 @@ class Token:
         self.deprel = deprel
         self.deps = deps
         self.miscs = dict(misc.split('=') for misc in miscs.split('|')) if miscs != '_' else {}
+        # May or may not be revised later on Tree level
+        self.arc_is_projective = True
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.id}: {self.form}>"
