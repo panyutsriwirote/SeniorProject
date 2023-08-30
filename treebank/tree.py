@@ -3,7 +3,7 @@ import re
 from .token import Token, TokenDict
 
 class TreeDict(TypedDict):
-    filename: Required[str]
+    filename: Required[str | None]
     sent_id: Required[str]
     text: Required[str]
     tokens: Required[list[TokenDict]]
@@ -23,10 +23,10 @@ class Tree:
             else:
                 raw_lines = raw_lines[i:]
                 break
-        assert "filename" in headers, f"Missing 'filename' header\n{headers}"
+        # assert "filename" in headers, f"Missing 'filename' header\n{headers}"
         assert "sent_id" in headers, f"Missing 'sent_id' header\n{headers}"
         assert "text" in headers, f"Missing 'text' header\n{headers}"
-        self.filename = headers["filename"]
+        self.filename = headers.get("filename")
         self.sent_id = headers["sent_id"]
         self.text = headers["text"]
         self.__tokens: list[Token] = []
@@ -40,7 +40,7 @@ class Tree:
                 found_root = True
             self.__tokens.append(token)
         assert found_root, f"Root not found in {self}"
-        assert self[-1].miscs["SpaceAfter"] == "No", f"Last token in {self} has SpaceAfter=Yes"
+        self[-1].miscs["SpaceAfter"] = "No"
         reconstructed_text = ''.join(token.form if token.miscs["SpaceAfter"] == "No" else token.form + ' ' for token in self)
         assert reconstructed_text == self.text, f"Text mismatch in {self}\nHeader: {self.text}\nActual: {reconstructed_text}"
         for start_token in self:

@@ -46,7 +46,7 @@ class TreeBank:
         return cls(Tree(raw_conllu) for raw_conllu in generate_conllu_from_brat(brat_dir_path))
 
     def to_conllu(self):
-        return "\n\n".join(tree.to_conllu() for tree in self)
+        return ''.join(tree.to_conllu() + "\n\n" for tree in self)
 
     def to_list_of_dict(self):
         return [tree.to_dict() for tree in self]
