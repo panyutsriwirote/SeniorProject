@@ -1,7 +1,7 @@
 from collections import Counter
 from collections.abc import Iterable
 from typing import overload, Literal
-from random import shuffle
+from random import Random
 import json
 from .tree import Tree
 from .brat2conllu import generate_conllu_from_brat
@@ -60,12 +60,18 @@ class TreeBank:
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(self.to_conllu() if format == "conllu" else self.to_json())
 
-    def train_dev_test_split(self, train_ratio: int, dev_ratio: int, test_ratio: int):
+    def train_dev_test_split(
+        self,
+        train_ratio: int,
+        dev_ratio: int,
+        test_ratio: int,
+        seed: int | None = None
+    ):
         sum_ratio = train_ratio + dev_ratio + test_ratio
         train_size = max(int(len(self) * (train_ratio / sum_ratio)), 1)
         dev_size = max(int(len(self) * (dev_ratio / sum_ratio)), 1)
         temp_trees = self.__trees.copy()
-        shuffle(temp_trees)
+        Random(seed).shuffle(temp_trees)
         return (
             type(self)(temp_trees[:train_size]),
             type(self)(temp_trees[train_size:train_size+dev_size]),
