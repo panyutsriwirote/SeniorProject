@@ -7,6 +7,8 @@ class TreeDict(TypedDict):
     sent_id: Required[str]
     text: Required[str]
     tokens: Required[list[TokenDict]]
+    is_projective: Required[bool]
+    num_non_projective_arcs: Required[int]
 
 class Tree:
 
@@ -88,7 +90,7 @@ class Tree:
         return self.__tokens[index]
 
     def __repr__(self):
-        return f"<{type(self).__name__} {self.filename}: {self.sent_id}>"
+        return f"<{type(self).__name__}{' ' + self.filename if self.filename else ''}: {self.sent_id}>"
 
     def to_conllu(self):
         return self.conllu_format.format(
@@ -103,5 +105,7 @@ class Tree:
             filename=self.filename,
             sent_id=self.sent_id,
             text=self.text,
-            tokens=[token.to_dict() for token in self]
+            tokens=[token.to_dict() for token in self],
+            is_projective=self.is_projective,
+            num_non_projective_arcs=self.num_non_projective_arcs
         )

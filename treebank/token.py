@@ -12,6 +12,7 @@ class TokenDict(TypedDict):
     deprel: Required[str]
     deps: Required[str]
     miscs: Required[dict[str, str]]
+    arc_is_projective: Required[bool]
 
 class Token:
 
@@ -34,8 +35,8 @@ class Token:
         self.miscs = dict(misc.split('=') for misc in miscs.split('|')) if miscs != '_' else {}
         if "SpaceAfter" not in self.miscs:
             self.miscs["SpaceAfter"] = "Yes"
-        # May or may not be revised later on Tree level
-        self.arc_is_projective = True
+        # Will be assigned later on Tree level
+        self.arc_is_projective: bool
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.id}: {self.form}>"
@@ -65,5 +66,6 @@ class Token:
             head=self.head,
             deprel=self.deprel,
             deps=self.deps,
-            miscs=self.miscs
+            miscs=self.miscs,
+            arc_is_projective=self.arc_is_projective
         )

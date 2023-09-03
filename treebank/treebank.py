@@ -62,12 +62,12 @@ class TreeBank:
 
     def train_dev_test_split(self, train_ratio: int, dev_ratio: int, test_ratio: int):
         sum_ratio = train_ratio + dev_ratio + test_ratio
-        train_size = int(len(self) * (train_ratio / sum_ratio))
-        dev_size = int(len(self) * (dev_ratio / sum_ratio))
-        shuffled_trees = self.__trees.copy()
-        shuffle(shuffled_trees)
+        train_size = max(int(len(self) * (train_ratio / sum_ratio)), 1)
+        dev_size = max(int(len(self) * (dev_ratio / sum_ratio)), 1)
+        temp_trees = self.__trees.copy()
+        shuffle(temp_trees)
         return (
-            type(self)(shuffled_trees[:train_size]),
-            type(self)(shuffled_trees[train_size:train_size+dev_size]),
-            type(self)(shuffled_trees[train_size+dev_size:])
+            type(self)(temp_trees[:train_size]),
+            type(self)(temp_trees[train_size:train_size+dev_size]),
+            type(self)(temp_trees[train_size+dev_size:])
         )
