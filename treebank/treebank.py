@@ -56,7 +56,7 @@ class TreeBank:
 
     def save(self, format: Literal["conllu", "json"], file_path: str):
         if format not in ("conllu", "json"):
-            raise ValueError(f"Unknown format {format}")
+            raise ValueError(f"Unknown format: {format!r}")
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(self.to_conllu() if format == "conllu" else self.to_json())
 

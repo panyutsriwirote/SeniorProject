@@ -1,4 +1,6 @@
-from typing import overload, TypedDict, Required
+from typing import overload, TypedDict, Required, Literal, NamedTuple
+from collections import Counter
+from itertools import chain
 import re
 from .token import Token, TokenDict
 
@@ -14,6 +16,7 @@ class Tree:
 
     header_pattern = re.compile(r"^# (?P<key>.+) = (?P<value>.+)$")
     conllu_format = "# filename = {filename}\n# sent_id = {sent_id}\n# text = {text}\n{body}"
+    __ROOT = Token.create_dummy_root()
 
     def __init__(self, raw_conllu: str):
         raw_lines = raw_conllu.split('\n')
@@ -36,37 +39,44 @@ class Tree:
         for i, raw_line in enumerate(raw_lines, start=1):
             token = Token(raw_line)
             assert token.id == i, f"Wrong token id in {self} at {token}"
-            assert (token.head == 0) == (token.deprel == "root"), f"Inconsistent head, deprel in {self} at {token}"
-            if token.head == 0:
+            if token.is_root:
                 assert not found_root, f"Multiple root in {self}. Second root at {token}"
                 found_root = True
+                token.head_token = self.__ROOT
+                self.root_token = token
             self.__tokens.append(token)
         assert found_root, f"Root not found in {self}"
         self[-1].miscs["SpaceAfter"] = "No"
         reconstructed_text = ''.join(token.form if token.miscs["SpaceAfter"] == "No" else token.form + ' ' for token in self)
         assert reconstructed_text == self.text, f"Text mismatch in {self}\nHeader: {self.text}\nActual: {reconstructed_text}"
+        # Link head tokens
+        for token in self:
+            if not token.is_root:
+                token.head_token = self[token.head - 1]
+                token.head_token.dep_tokens.append(token)
+        # Check for cycles
         for start_token in self:
             token = start_token
             loop_counter = 0
-            while token.head != 0:
-                token = self[token.head-1]
+            while not token.is_root:
+                token = token.head_token
                 loop_counter += 1
                 assert loop_counter < len(self), f"Loop in {self} starting at {start_token}"
         # Check for projectivity
         tree_is_projective = True
         for dep in self:
-            if dep.deprel == "root":
+            if dep.is_root:
                 continue
-            head = self[dep.head - 1]
+            head = dep.head_token
             start, stop = (dep.id, head.id - 1) if dep.id < head.id else (head.id, dep.id - 1)
             arc_is_projective = True
             for token in self[start:stop]:
-                token = self[token.head - 1]
+                token = token.head_token
                 while token is not head:
-                    if token.deprel == "root":
+                    if token.is_root:
                         arc_is_projective = tree_is_projective = False
                         break
-                    token = self[token.head - 1]
+                    token = token.head_token
                 if not arc_is_projective:
                     break
             dep.arc_is_projective = arc_is_projective
@@ -109,3 +119,117 @@ class Tree:
             is_projective=self.is_projective,
             num_non_projective_arcs=self.num_non_projective_arcs
         )
+
+    def to_transitions(self, action_set: Literal["standard", "eager"]):
+        stack = [self.__ROOT]
+        buffer = self.__tokens.copy()
+        relations: list[Relation] = []
+        transitions: list[tuple[TransitionState, str]] = []
+        def add_transition(action: str):
+            transitions.append((
+                TransitionState(
+                    stack=stack.copy(),
+                    buffer=buffer.copy(),
+                    relations=relations.copy()
+                ),
+                action
+            ))
+        if action_set == "standard":
+            if not self.is_projective:
+                raise ValueError(f"{action_set!r} action set cannot be used with non-projective trees")
+            while len(stack) > 1 or buffer:
+                top = stack[-1]
+                second = stack[-2] if len(stack) > 1 else None
+                if (
+                    second and
+                    second.head_token is top
+                ):
+                    add_transition(f"LeftArc-{second.deprel}")
+                    relations.append(
+                        Relation(
+                            head=top,
+                            dep=second,
+                            rel=second.deprel
+                        )
+                    )
+                    stack.pop(-2)
+                elif (
+                    second and
+                    top.head_token is second and
+                    not any(token in top.dep_tokens for token in chain(stack, buffer))
+                ):
+                    add_transition(f"RightArc-{top.deprel}")
+                    relations.append(
+                        Relation(
+                            head=second,
+                            dep=top,
+                            rel=top.deprel
+                        )
+                    )
+                    stack.pop()
+                else:
+                    add_transition("Shift")
+                    stack.append(buffer.pop(0))
+        elif action_set == "eager":
+            if not self.is_projective:
+                raise ValueError(f"{action_set!r} action set cannot be used with non-projective trees")
+            while len(stack) > 1 or buffer:
+                top = stack[-1]
+                front = buffer[0] if buffer else None
+                if (
+                    front and
+                    top.head_token is front
+                ):
+                    add_transition(f"LeftArc-{top.deprel}")
+                    relations.append(
+                        Relation(
+                            head=front,
+                            dep=top,
+                            rel=top.deprel
+                        )
+                    )
+                    stack.pop()
+                elif (
+                    front and
+                    front.head_token is top
+                ):
+                    add_transition(f"RightArc-{front.deprel}")
+                    relations.append(
+                        Relation(
+                            head=top,
+                            dep=front,
+                            rel=front.deprel
+                        )
+                    )
+                    stack.append(buffer.pop(0))
+                elif (
+                    any(relation.dep is top for relation in relations) and
+                    not any(token in top.dep_tokens for token in chain(stack, buffer))
+                ):
+                    add_transition("Reduce")
+                    stack.pop()
+                else:
+                    add_transition("Shift")
+                    stack.append(buffer.pop(0))
+        else:
+            raise ValueError(f"Unknown action set: {action_set!r}")
+        token_count = Counter(relation.dep for relation in relations)
+        assert all(count == 1 for count in token_count.values()), f"Invalid {action_set!r} transition sequence in {self}: Multiple head tokens for the same token"
+        assert set(token_count) == set(self.__tokens), f"Invalid {action_set!r} transition sequence in {self}: Not all tokens have a head token"
+        return transitions
+
+class Relation(NamedTuple):
+    head: Token
+    dep: Token
+    rel: str
+
+    def __repr__(self):
+        return f"({self.head.form} -{self.rel}-> {self.dep.form})"
+
+class TransitionState(NamedTuple):
+    stack: list[Token]
+    buffer: list[Token]
+    relations: list[Relation]
+
+    def __repr__(self):
+        return f"({[token.form for token in self.stack]}, {[token.form for token in self.buffer]}, {[relation for relation in self.relations]})"

@@ -23,6 +23,7 @@ class Token:
         assert self.pattern.fullmatch(raw_conllu), f"Wrong body format\n{raw_conllu}"
         id, form, lemma, upos, xpos, feats, head, deprel, deps, miscs = raw_conllu.rstrip('\n').split('\t')
         assert id != head, f"Self-head\n{raw_conllu}"
+        assert (head == '0') == (deprel == "root"), f"Inconsistent head, deprel\n{raw_conllu}"
         self.id = int(id)
         self.form = form
         self.lemma = lemma
@@ -35,8 +36,11 @@ class Token:
         self.miscs = dict(misc.split('=') for misc in miscs.split('|')) if miscs != '_' else {}
         if "SpaceAfter" not in self.miscs:
             self.miscs["SpaceAfter"] = "Yes"
+        self.is_root = (head == '0')
         # Will be reassigned later on Tree level
         self.arc_is_projective = True
+        self.head_token = self
+        self.dep_tokens: list[Token] = []
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.id}: {self.form}>"
@@ -69,3 +73,12 @@ class Token:
             miscs=self.miscs,
             arc_is_projective=self.arc_is_projective
         )
+
+    @classmethod
+    def create_dummy_root(cls):
+        ROOT = cls.__new__(cls)
+        ROOT.id = 0
+        ROOT.form = "ROOT"
+        ROOT.is_root = True
+        ROOT.head_token = None
+        return ROOT
