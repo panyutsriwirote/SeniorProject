@@ -35,8 +35,8 @@ class Token:
         self.miscs = dict(misc.split('=') for misc in miscs.split('|')) if miscs != '_' else {}
         if "SpaceAfter" not in self.miscs:
             self.miscs["SpaceAfter"] = "Yes"
-        # Will be assigned later on Tree level
-        self.arc_is_projective: bool
+        # Will be reassigned later on Tree level
+        self.arc_is_projective = True
 
     def __repr__(self):
         return f"<{type(self).__name__} {self.id}: {self.form}>"
