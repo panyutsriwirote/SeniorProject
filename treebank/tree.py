@@ -149,7 +149,7 @@ class Tree:
                         Relation(
                             head=top,
                             dep=second,
-                            rel=second.deprel
+                            deprel=second.deprel
                         )
                     )
                     stack.pop(-2)
@@ -163,7 +163,7 @@ class Tree:
                         Relation(
                             head=second,
                             dep=top,
-                            rel=top.deprel
+                            deprel=top.deprel
                         )
                     )
                     stack.pop()
@@ -185,7 +185,7 @@ class Tree:
                         Relation(
                             head=front,
                             dep=top,
-                            rel=top.deprel
+                            deprel=top.deprel
                         )
                     )
                     stack.pop()
@@ -198,7 +198,7 @@ class Tree:
                         Relation(
                             head=top,
                             dep=front,
-                            rel=front.deprel
+                            deprel=front.deprel
                         )
                     )
                     stack.append(buffer.pop(0))
@@ -221,10 +221,10 @@ class Tree:
 class Relation(NamedTuple):
     head: Token
     dep: Token
-    rel: str
+    deprel: str
 
     def __repr__(self):
-        return f"({self.head.form} -{self.rel}-> {self.dep.form})"
+        return f"({self.head.form} -{self.deprel}-> {self.dep.form})"
 
 class TransitionState(NamedTuple):
     stack: list[Token]
@@ -232,4 +232,4 @@ class TransitionState(NamedTuple):
     relations: list[Relation]
 
     def __repr__(self):
-        return f"({[token.form for token in self.stack]}, {[token.form for token in self.buffer]}, {[relation for relation in self.relations]})"
+        return f"([{', '.join(token.form for token in self.stack)}], [{', '.join(token.form for token in self.buffer)}], [{', '.join(repr(relation) for relation in self.relations)}])"
