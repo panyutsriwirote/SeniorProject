@@ -57,6 +57,8 @@ class TreeBank:
     def save(self, format: Literal["conllu", "json"], file_path: str):
         if format not in ("conllu", "json"):
             raise ValueError(f"Unknown format: {format!r}")
+        if not file_path.endswith(f".{format}"):
+            file_path += f".{format}"
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(self.to_conllu() if format == "conllu" else self.to_json())
 
@@ -65,6 +67,7 @@ class TreeBank:
         train_ratio: int,
         dev_ratio: int,
         test_ratio: int,
+        *,
         seed: int | None = None
     ):
         sum_ratio = train_ratio + dev_ratio + test_ratio
