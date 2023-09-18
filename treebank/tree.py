@@ -38,7 +38,7 @@ class Tree:
         found_root = False
         for i, raw_line in enumerate(raw_lines, start=1):
             token = Token(raw_line)
-            assert token.id == i, f"Wrong token id in {self} at {token}"
+            assert token.id == i, f"Non-sequential token id in {self} at {token}"
             if token.is_root:
                 assert not found_root, f"Multiple root in {self}. Second root at {token}"
                 found_root = True
