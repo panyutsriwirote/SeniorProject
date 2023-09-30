@@ -1,7 +1,7 @@
 from typing import overload, TypedDict, Required, Literal, NamedTuple
 from collections import Counter
 from itertools import chain
-import re
+import re, torch
 from .token import Token, TokenDict
 
 class TreeDict(TypedDict):
@@ -16,7 +16,7 @@ class Tree:
 
     header_pattern = re.compile(r"^# (?P<key>.+) = (?P<value>.+)$")
     conllu_format = "# filename = {filename}\n# sent_id = {sent_id}\n# text = {text}\n{body}"
-    __ROOT = Token.create_dummy_root()
+    _ROOT = Token.create_dummy_root()
 
     def __init__(self, raw_conllu: str):
         raw_lines = raw_conllu.split('\n')
@@ -42,7 +42,7 @@ class Tree:
             if token.is_root:
                 assert not found_root, f"Multiple root in {self}. Second root at {token}"
                 found_root = True
-                token.head_token = self.__ROOT
+                token.head_token = self._ROOT
                 self.root_token = token
             self.__tokens.append(token)
         assert found_root, f"Root not found in {self}"
@@ -120,8 +120,14 @@ class Tree:
             num_non_projective_arcs=self.num_non_projective_arcs
         )
 
+    def to_adjacency_matrix(self):
+        matrix = torch.zeros(len(self) + 1, len(self) + 1)
+        for token in self:
+            matrix[token.head, token.id] = 1
+        return matrix
+
     def to_transitions(self, action_set: Literal["standard", "eager"]):
-        stack = [self.__ROOT]
+        stack = [self._ROOT]
         buffer = self.__tokens.copy()
         relations: list[Relation] = []
         transitions: list[tuple[TransitionState, str]] = []

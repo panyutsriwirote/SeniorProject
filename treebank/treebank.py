@@ -16,6 +16,12 @@ class TreeBank:
         self.num_tokens = sum(len(tree) for tree in self)
         self.num_non_projective_trees = sum(not tree.is_projective for tree in self)
         self.num_non_projective_arcs = sum(tree.num_non_projective_arcs for tree in self)
+        tag_set: list[str] = []
+        for tree in self:
+            for token in tree:
+                if token.deprel not in tag_set:
+                    tag_set.append(token.deprel)
+        self.tag_set = tag_set
 
     def __len__(self):
         return len(self.__trees)
