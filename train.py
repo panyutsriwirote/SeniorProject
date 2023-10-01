@@ -23,11 +23,12 @@ BATCH_SIZE = 8
 for i in range(1, NUM_EPOCHS + 1):
     print(f"EPOCH: {i}")
     start, stop = 0, BATCH_SIZE
-    batch = ThaiPUD[start:stop]
+    batch = [tree for tree in ThaiPUD[start:stop] if tree.is_projective]
     while batch:
         loss = model(batch).loss
+        print(loss.item())
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
         start, stop = stop, stop + BATCH_SIZE
-        batch = ThaiPUD[start:stop]
+        batch = [tree for tree in ThaiPUD[start:stop] if tree.is_projective]

@@ -75,10 +75,10 @@ class Token:
         )
 
     @classmethod
-    def create_dummy_root(cls):
-        ROOT = cls.__new__(cls)
-        ROOT.id = 0
-        ROOT.form = "ROOT"
-        ROOT.is_root = True
-        ROOT.head_token = None
-        return ROOT
+    def create_dummy_token(cls, id: int, form: str, is_root: bool):
+        dummy = cls.__new__(cls)
+        dummy.id = id
+        dummy.form = form
+        dummy.is_root = is_root
+        dummy.head_token = None
+        return dummy

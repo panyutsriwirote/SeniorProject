@@ -16,7 +16,8 @@ class Tree:
 
     header_pattern = re.compile(r"^# (?P<key>.+) = (?P<value>.+)$")
     conllu_format = "# filename = {filename}\n# sent_id = {sent_id}\n# text = {text}\n{body}"
-    _ROOT = Token.create_dummy_root()
+    _ROOT = Token.create_dummy_token(0, "ROOT", True)
+    _END = Token.create_dummy_token(-1, "END", False)
 
     def __init__(self, raw_conllu: str):
         raw_lines = raw_conllu.split('\n')
@@ -128,7 +129,7 @@ class Tree:
 
     def to_transitions(self, action_set: Literal["standard", "eager"]):
         stack = [self._ROOT]
-        buffer = self.__tokens.copy()
+        buffer = self.__tokens + [self._END]
         relations: list[Relation] = []
         transitions: list[tuple[TransitionState, str]] = []
         def add_transition(action: str):
@@ -143,7 +144,7 @@ class Tree:
         if action_set == "standard":
             if not self.is_projective:
                 raise ValueError(f"{action_set!r} action set cannot be used with non-projective trees")
-            while len(stack) > 1 or buffer:
+            while len(stack) > 1 or len(buffer) > 1:
                 top = stack[-1]
                 second = stack[-2] if len(stack) > 1 else None
                 if (
@@ -179,9 +180,9 @@ class Tree:
         elif action_set == "eager":
             if not self.is_projective:
                 raise ValueError(f"{action_set!r} action set cannot be used with non-projective trees")
-            while len(stack) > 1 or buffer:
+            while len(stack) > 1 or len(buffer) > 1:
                 top = stack[-1]
-                front = buffer[0] if buffer else None
+                front = buffer[0] if len(buffer) > 1 else None
                 if (
                     front and
                     top.head_token is front
