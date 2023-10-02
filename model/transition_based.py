@@ -24,7 +24,7 @@ class TransitionBasedModel(Module):
     ):
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(transformer_path)
-        self.model = AutoModel.from_pretrained(transformer_path, add_pooling_layer=False)
+        self.transformer = AutoModel.from_pretrained(transformer_path, add_pooling_layer=False)
 
         if action_set not in ("standard", "eager"):
             raise ValueError(f"Invalid action set: {action_set}")
@@ -35,9 +35,12 @@ class TransitionBasedModel(Module):
         self.id_to_label = dict(enumerate(tag_set))
         self.label_to_id = {label: i for i, label in enumerate(tag_set)}
         self.space_token = space_token
+        vocab = self.tokenizer.get_vocab()
+        self.space_ids = {vocab.get(space_token), vocab.get('▁')}
+        self.space_ids.discard(None)
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-        config = self.model.config
+        config = self.transformer.config
         # ROOT and END embeddings
         self.root_embedding = Parameter(torch.zeros(1, config.hidden_size))
         self.end_embedding = Parameter(torch.zeros(1, config.hidden_size))
@@ -70,27 +73,17 @@ class TransitionBasedModel(Module):
             return_tensors="pt"
         ).to(self.device)
         # Encode using transformer
-        encoded = self.model(**tokenized).last_hidden_state
-        # Select the encoding of the first token of each word
-        # Plus the encoding of the first token of the sentence (ROOT)
+        encoded = self.transformer(**tokenized).last_hidden_state
+        # Select the encoding of the first non-space token of each word
         select_indice: list[list[int]] = [[] for _ in trees]
-        for i, (tree, select_index) in enumerate(zip(trees, select_indice)):
+        for i, (select_index, input_ids) in enumerate(zip(select_indice, tokenized.input_ids)):
             word_ids = tokenized.word_ids(batch_index=i)
-            token_iter = iter(tree)
-            is_space = False
             last_word_id = None
-            for j, word_id in enumerate(word_ids):
-                if word_id is None or word_id == last_word_id:
-                    continue
-                if self.space_token != ' ' and is_space:
-                    is_space = False
+            for j, (word_id, token_id) in enumerate(zip(word_ids, input_ids)):
+                if word_id in (None, last_word_id) or token_id.item() in self.space_ids:
                     continue
                 select_index.append(j)
                 last_word_id = word_id
-                try:
-                    is_space = next(token_iter).miscs["SpaceAfter"] == "Yes"
-                except StopIteration:
-                    break
         return [
             torch.cat([
                 self.root_embedding,
