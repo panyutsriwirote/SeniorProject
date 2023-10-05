@@ -16,7 +16,7 @@ class TokenDict(TypedDict):
 
 class Token:
 
-    pattern = re.compile(r"^\d+\t[^\t_]+\t_\t[A-Z]+\t([A-Z]+|``|\.\.\.|''|[_,\.:\-\(\)])\t(_|[A-Z][a-z]+([A-Z][a-z]+)?=([A-Z][a-z]+|\d)(\|[A-Z][a-z]+([A-Z][a-z]+)?=([A-Z][a-z]+|\d))*)\t\d+\t[a-z]+(:[a-z]+)?\t_\t[A-Z][a-z]+([A-Z][a-z]+)?=([^\|]+)?(\|[A-Z][a-z]+([A-Z][a-z]+)?=([^\|]+)?)*$")
+    pattern = re.compile(r"^\d+\t[^\t_]+\t_\t[A-Z]+\t([A-Z]+|``|\.\.\.|''|[_,\.:\-\(\)])\t(_|[A-Z][a-z]+([A-Z][a-z]+)?=([A-Z][a-z]+|\d)(\|[A-Z][a-z]+([A-Z][a-z]+)?=([A-Z][a-z]+|\d))*)\t\d+\t[a-z]+(:[a-z]+)?\t_\t(_|[A-Z][a-z]+([A-Z][a-z]+)?=([^\|]+)?(\|[A-Z][a-z]+([A-Z][a-z]+)?=([^\|]+)?)*)$")
     conllu_format = "{id}\t{form}\t{lemma}\t{upos}\t{xpos}\t{feats}\t{head}\t{deprel}\t{deps}\t{miscs}"
 
     def __init__(self, raw_conllu: str):

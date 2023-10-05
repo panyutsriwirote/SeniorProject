@@ -2,6 +2,7 @@ from collections import Counter
 from collections.abc import Iterable
 from typing import overload, Literal
 from random import Random
+from os import walk, path
 import json
 from .tree import Tree
 from .brat2conllu import generate_conllu_from_brat
@@ -44,8 +45,35 @@ class TreeBank:
 
     @classmethod
     def from_conllu_file(cls, conllu_file_path: str):
+        trees: list[Tree] = []
         with open(conllu_file_path, encoding="utf-8") as conllu_file:
-            return cls(Tree(raw_conllu) for raw_conllu in conllu_file.read().split("\n\n") if raw_conllu != '')
+            for raw_conllu in conllu_file.read().split("\n\n"):
+                if raw_conllu != '':
+                    tree = Tree(raw_conllu)
+                    if tree.filename is None:
+                        tree.filename = conllu_file_path
+                    trees.append(tree)
+        return cls(trees)
+
+    @classmethod
+    def from_conllu_dir(cls, conllu_dir_path: str):
+        trees: list[Tree] = []
+        for dirpath, _, filenames in walk(conllu_dir_path):
+            for filename in filenames:
+                if filename.endswith(".conllu"):
+                    file_path = path.join(dirpath, filename)
+                    with open(file_path, encoding="utf-8") as conllu_file:
+                        for raw_conllu in conllu_file.read().split("\n\n"):
+                            if raw_conllu != '':
+                                try:
+                                    tree = Tree(raw_conllu)
+                                    if tree.filename is None:
+                                        tree.filename = filename
+                                    trees.append(tree)
+                                except AssertionError as e:
+                                    print(f"The following error occured in '{file_path}':")
+                                    print(e)
+        return cls(trees)
 
     @classmethod
     def from_brat_dir(cls, brat_dir_path: str):
