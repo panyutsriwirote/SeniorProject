@@ -1,6 +1,7 @@
 from treebank import TreeBank
 from model import TransitionBasedModel
 from torch.optim import AdamW
+from transformers import get_scheduler
 import torch
 
 train_set = TreeBank.from_conllu_file("data/thai_pud/train.conllu")
@@ -23,6 +24,18 @@ optimizer = AdamW(
 
 NUM_EPOCHS = 10
 BATCH_SIZE = 8
+
+num_batches_per_epoch, remainder = divmod(len(train_set), BATCH_SIZE)
+if remainder:
+    num_batches_per_epoch += 1
+num_total_steps = NUM_EPOCHS * num_batches_per_epoch
+lr_scheduler = get_scheduler(
+    "linear",
+    optimizer=optimizer,
+    num_warmup_steps=int(0.1 * num_total_steps),
+    num_training_steps=num_total_steps
+)
+
 max_las = 0.0
 for i in range(1, NUM_EPOCHS + 1):
     model.train()
@@ -34,6 +47,7 @@ for i in range(1, NUM_EPOCHS + 1):
         print(loss.item())
         loss.backward()
         optimizer.step()
+        lr_scheduler.step()
         optimizer.zero_grad()
         start, stop = stop, stop + BATCH_SIZE
         batch = [tree for tree in train_set[start:stop] if tree.is_projective]

@@ -41,19 +41,25 @@ class TransitionBasedModel(Module):
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
         config = self.transformer.config
+        hidden_size = config.hidden_size
+        initializer_range = config.initializer_range
         # ROOT and END embeddings
-        self.root_embedding = Parameter(torch.zeros(1, config.hidden_size))
-        self.end_embedding = Parameter(torch.zeros(1, config.hidden_size))
-        self.root_embedding.data.normal_(mean=0.0, std=config.initializer_range)
-        self.end_embedding.data.normal_(mean=0.0, std=config.initializer_range)
+        self.root_embedding = Parameter(torch.zeros(1, hidden_size))
+        self.end_embedding = Parameter(torch.zeros(1, hidden_size))
+        self.root_embedding.data.normal_(mean=0.0, std=initializer_range)
+        self.end_embedding.data.normal_(mean=0.0, std=initializer_range)
         # Classifier
-        feature_size = config.hidden_size * 3
-        self.dense = Linear(feature_size, feature_size)
+        feature_size = hidden_size * 3
         classifier_dropout = (
-            config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
+            config.classifier_dropout
+            if config.classifier_dropout is not None
+            else config.hidden_dropout_prob
         )
+        self.dense = Linear(feature_size, feature_size)
         self.dropout = Dropout(classifier_dropout)
         self.out_proj = Linear(feature_size, len(self.id_to_label))
+        # Loss
+        self.loss_func = CrossEntropyLoss()
 
         self.to(self.device)
 
@@ -133,8 +139,7 @@ class TransitionBasedModel(Module):
         # Classifier
         x = self.__classifier(x)
         # Loss
-        loss_func = CrossEntropyLoss()
-        loss = loss_func(x, y)
+        loss = self.loss_func(x, y)
         # Return
         return TransitionBasedModelOutput(
             output=x,
