@@ -6,6 +6,13 @@ from treebank import TreeBank
 from .transition_based import TransitionBasedModel
 from .graph_based import GraphBasedModel
 
+def get_train_dev_test(data_path: str):
+    return (
+        TreeBank.from_conllu_file(path.join(data_path, "train.conllu")),
+        TreeBank.from_conllu_file(path.join(data_path, "dev.conllu")),
+        TreeBank.from_conllu_file(path.join(data_path, "test.conllu"))
+    )
+
 def train_model(
     *,
     model: TransitionBasedModel | GraphBasedModel,
@@ -16,9 +23,7 @@ def train_model(
 ):
     is_graph_based = isinstance(model, GraphBasedModel)
 
-    train_set = TreeBank.from_conllu_file(path.join(data_path, "train.conllu"))
-    dev_set = TreeBank.from_conllu_file(path.join(data_path, "dev.conllu"))
-    test_set = TreeBank.from_conllu_file(path.join(data_path, "test.conllu"))
+    train_set, dev_set, test_set = get_train_dev_test(data_path)
 
     optimizer = AdamW(
         params=model.parameters(),
