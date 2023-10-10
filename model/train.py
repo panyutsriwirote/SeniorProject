@@ -16,14 +16,14 @@ def get_train_dev_test(data_path: str):
 def train_model(
     *,
     model: TransitionBasedModel | GraphBasedModel,
-    data_path: str,
+    train_set: TreeBank,
+    dev_set: TreeBank,
+    test_set: TreeBank,
     num_epochs: int,
     batch_size: int,
     save_path: str
 ):
     is_graph_based = isinstance(model, GraphBasedModel)
-
-    train_set, dev_set, test_set = get_train_dev_test(data_path)
 
     optimizer = AdamW(
         params=model.parameters(),
