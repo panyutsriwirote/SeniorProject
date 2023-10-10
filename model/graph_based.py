@@ -51,13 +51,14 @@ class GraphBasedModel(Module):
 
     def __init__(
         self,
+        *,
         tag_set: list[str],
-        transformer_model: str,
+        transformer_path: str,
         space_token: str = "<_>"
     ):
         super().__init__()
-        self.tokenizer = AutoTokenizer.from_pretrained(transformer_model)
-        self.transformer = AutoModel.from_pretrained(transformer_model, add_pooling_layer=False)
+        self.tokenizer = AutoTokenizer.from_pretrained(transformer_path)
+        self.transformer = AutoModel.from_pretrained(transformer_path, add_pooling_layer=False)
 
         self.id_to_label = dict(enumerate(tag_set))
         self.label_to_id = {label: i for i, label in enumerate(tag_set)}

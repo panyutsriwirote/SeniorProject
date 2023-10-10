@@ -17,6 +17,7 @@ class TransitionBasedModel(Module):
 
     def __init__(
         self,
+        *,
         action_set: Literal["standard", "eager"],
         tag_set: list[str],
         transformer_path: str,
