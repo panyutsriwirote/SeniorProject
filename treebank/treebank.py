@@ -24,6 +24,9 @@ class TreeBank:
                     tag_set.append(token.deprel)
         self.tag_set = tag_set
 
+    def copy(self):
+        return type(self)(tree.copy() for tree in self)
+
     def __len__(self):
         return len(self.__trees)
 

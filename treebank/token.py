@@ -42,6 +42,9 @@ class Token:
         self.head_token = self
         self.dep_tokens: list[Token] = []
 
+    def copy(self):
+        return type(self)(self.to_conllu())
+
     def __repr__(self):
         return f"<{type(self).__name__} {self.id}: {self.form}>"
 

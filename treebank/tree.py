@@ -84,6 +84,9 @@ class Tree:
         self.is_projective = tree_is_projective
         self.num_non_projective_arcs = 0 if tree_is_projective else sum(not token.arc_is_projective for token in self)
 
+    def copy(self):
+        return type(self)(self.to_conllu())
+
     def __len__(self):
         return len(self.__tokens)
 

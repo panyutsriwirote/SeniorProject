@@ -18,10 +18,10 @@ class TransitionBasedModel(Module):
     def __init__(
         self,
         *,
-        action_set: Literal["standard", "eager"],
+        action_set: str,
         tag_set: list[str],
         transformer_path: str,
-        space_token: str = "<_>"
+        space_token: str
     ):
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(transformer_path)
