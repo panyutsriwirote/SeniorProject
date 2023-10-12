@@ -109,7 +109,8 @@ def load_model(model_path: str, space_token: str):
     else:
         raise ValueError(f"Invalid architecture: {match['architecture']!r}")
 
-    return model
+    print(model.load_state_dict(torch.load(model_path), strict=False))
+    return model.eval()
 
 def parse_treebank(treebank: TreeBank, model: TransitionBasedModel | GraphBasedModel):
     new_treebank = treebank.copy()
