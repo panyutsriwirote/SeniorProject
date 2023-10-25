@@ -92,13 +92,13 @@ class GraphBasedModel(Module):
             if config.classifier_dropout is not None
             else config.hidden_dropout_prob
         )
-        self.arc_head = FFNN(feature_size, feature_size, classifier_dropout)
-        self.arc_dep = FFNN(feature_size, feature_size, classifier_dropout)
-        self.label_head = FFNN(feature_size, feature_size, classifier_dropout)
-        self.label_dep = FFNN(feature_size, feature_size, classifier_dropout)
+        self.arc_head = FFNN(feature_size, hidden_size, classifier_dropout)
+        self.arc_dep = FFNN(feature_size, hidden_size, classifier_dropout)
+        self.label_head = FFNN(feature_size, hidden_size, classifier_dropout)
+        self.label_dep = FFNN(feature_size, hidden_size, classifier_dropout)
         # Biaffine layers
-        self.arc_biaffine = Biaffine(feature_size, initializer_range)
-        self.label_biaffine = Biaffine(feature_size, initializer_range, len(self.id_to_label))
+        self.arc_biaffine = Biaffine(hidden_size, initializer_range)
+        self.label_biaffine = Biaffine(hidden_size, initializer_range, len(self.id_to_label))
         # Loss
         self.loss_func = CrossEntropyLoss()
 

@@ -66,9 +66,9 @@ class TransitionBasedModel(Module):
             if config.classifier_dropout is not None
             else config.hidden_dropout_prob
         )
-        self.dense = Linear(feature_size, feature_size)
+        self.dense = Linear(feature_size, hidden_size)
         self.dropout = Dropout(classifier_dropout)
-        self.out_proj = Linear(feature_size, len(self.id_to_label))
+        self.out_proj = Linear(hidden_size, len(self.id_to_label))
         # Loss
         self.loss_func = CrossEntropyLoss()
 
