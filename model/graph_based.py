@@ -6,6 +6,7 @@ import torch
 from treebank.tree import Tree, Relation
 from treebank import TreeBank
 from spanningtrees import MST
+from .super_token import SuperTokenEmbedding
 
 @dataclass
 class GraphBasedModelOutput:
@@ -54,7 +55,8 @@ class GraphBasedModel(Module):
         *,
         tag_set: list[str],
         transformer_path: str,
-        space_token: str
+        space_token: str,
+        augment: bool
     ):
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(transformer_path)
@@ -74,19 +76,29 @@ class GraphBasedModel(Module):
         # ROOT embeddings
         self.root_embedding = Parameter(torch.zeros(1, hidden_size))
         self.root_embedding.data.normal_(mean=0.0, std=initializer_range)
+        # Feature augmentation
+        self.augmented = augment
+        if augment:
+            kernel_sizes = [2, 3, 4, 5]
+            each_kernel_size_output_dim = hidden_size // len(kernel_sizes)
+            additional_dim = (len(kernel_sizes) * each_kernel_size_output_dim ) + hidden_size
+            self.super_token_embeddings = SuperTokenEmbedding(hidden_size, kernel_sizes, each_kernel_size_output_dim)
+        else:
+            additional_dim = 0
         # FFNN
+        feature_size = hidden_size + additional_dim
         classifier_dropout = (
             config.classifier_dropout
             if config.classifier_dropout is not None
             else config.hidden_dropout_prob
         )
-        self.arc_head = FFNN(hidden_size, hidden_size, classifier_dropout)
-        self.arc_dep = FFNN(hidden_size, hidden_size, classifier_dropout)
-        self.label_head = FFNN(hidden_size, hidden_size, classifier_dropout)
-        self.label_dep = FFNN(hidden_size, hidden_size, classifier_dropout)
+        self.arc_head = FFNN(feature_size, feature_size, classifier_dropout)
+        self.arc_dep = FFNN(feature_size, feature_size, classifier_dropout)
+        self.label_head = FFNN(feature_size, feature_size, classifier_dropout)
+        self.label_dep = FFNN(feature_size, feature_size, classifier_dropout)
         # Biaffine layers
-        self.arc_biaffine = Biaffine(hidden_size, initializer_range)
-        self.label_biaffine = Biaffine(hidden_size, initializer_range, len(self.id_to_label))
+        self.arc_biaffine = Biaffine(feature_size, initializer_range)
+        self.label_biaffine = Biaffine(feature_size, initializer_range, len(self.id_to_label))
         # Loss
         self.loss_func = CrossEntropyLoss()
 
@@ -119,13 +131,27 @@ class GraphBasedModel(Module):
                     continue
                 select_index.append(j)
                 last_word_id = word_id
-        return [
+        pooled_encodings = [
             torch.cat([
                 self.root_embedding,
                 encoded[i, select_index]
             ])
             for i, select_index in enumerate(select_indice)
         ]
+        # Feature augmentation
+        if self.augmented:
+            return [
+                torch.cat([
+                    pooled_encoding, # Token embedding
+                    super_token_embedding, # Super token embedding
+                    encoded[i, 0].expand(len(pooled_encoding), -1) # Sentence embedding
+                ], dim=1)
+                for i, (pooled_encoding, super_token_embedding) in enumerate(
+                    zip(pooled_encodings, self.super_token_embeddings(pooled_encodings))
+                )
+            ]
+        else:
+            return pooled_encodings
 
     def forward(self, trees: list[Tree]):
         pooled_encodings = self.__encode_and_pool(trees)

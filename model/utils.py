@@ -72,7 +72,7 @@ def train_model(
     print(f"TEST: {test_metrics}")
     return test_metrics
 
-MODEL_FILENAME_PATTERN = re.compile(r"(?P<dataset>[^\-]+)\-(?P<architecture>transition|graph)(\-(?P<action_set>standard|eager))?\-(?P<transformer>wangchan|phayathai)\.pt")
+MODEL_FILENAME_PATTERN = re.compile(r"(?P<dataset>[^\-]+)\-(?P<architecture>transition|graph)(\-(?P<action_set>standard|eager))?\-(?P<transformer>wangchan|phayathai)(?P<augmented>\-augmented)?\.pt")
 TRANSFORMER_NAME_TO_PATH = {
     "wangchan": "airesearch/wangchanberta-base-att-spm-uncased"
 }
@@ -98,13 +98,15 @@ def load_model(model_path: str, space_token: str):
             action_set=match["action_set"],
             tag_set=tag_set,
             transformer_path=transformer_path,
-            space_token=space_token
+            space_token=space_token,
+            augment=match["augmented"] is not None
         )
     elif match["architecture"] == "graph":
         model = GraphBasedModel(
             tag_set=tag_set,
             transformer_path=transformer_path,
-            space_token=space_token
+            space_token=space_token,
+            augment=match["augmented"] is not None
         )
     else:
         raise ValueError(f"Invalid architecture: {match['architecture']!r}")
