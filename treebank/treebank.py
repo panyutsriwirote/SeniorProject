@@ -18,11 +18,15 @@ class TreeBank:
         self.num_non_projective_trees = sum(not tree.is_projective for tree in self)
         self.num_non_projective_arcs = sum(tree.num_non_projective_arcs for tree in self)
         tag_set: list[str] = []
+        upos_set: list[str] = []
         for tree in self:
             for token in tree:
                 if token.deprel not in tag_set:
                     tag_set.append(token.deprel)
+                if token.upos not in upos_set:
+                    upos_set.append(token.upos)
         self.tag_set = tag_set
+        self.upos_set = upos_set
 
     def copy(self):
         return type(self)(tree.copy() for tree in self)
