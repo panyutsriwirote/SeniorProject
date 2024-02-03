@@ -72,9 +72,10 @@ def train_model(
     print(f"TEST: {test_metrics}")
     return test_metrics
 
-MODEL_FILENAME_PATTERN = re.compile(r"(?P<dataset>[^\-]+)\-(?P<architecture>transition|graph)(\-(?P<action_set>standard|eager))?\-(?P<transformer>wangchan|phayathai)(?P<augmented>\-augmented)?\.pt")
+MODEL_FILENAME_PATTERN = re.compile(r"(?P<dataset>[^\-]+)\-(?P<architecture>transition|graph)(\-(?P<action_set>standard|eager))?\-(?P<transformer>wangchan|phayathai)(?P<augmented>\-augmented)?(?P<pos>\-pos)?\.pt")
 TRANSFORMER_NAME_TO_PATH = {
-    "wangchan": "airesearch/wangchanberta-base-att-spm-uncased"
+    "wangchan": "airesearch/wangchanberta-base-att-spm-uncased",
+    "phayathai": "clicknext/phayathaibert"
 }
 
 def set_transformer_path(name: str, path: str):
@@ -97,6 +98,7 @@ def load_model(model_path: str, space_token: str):
         model = TransitionBasedModel(
             action_set=match["action_set"],
             tag_set=tag_set,
+            upos_set=None if match["pos"] is None else torch.load(path.join(model_dirname, f"{match['dataset']}_upos_set.pt")),
             transformer_path=transformer_path,
             space_token=space_token,
             augment=match["augmented"] is not None
@@ -104,6 +106,7 @@ def load_model(model_path: str, space_token: str):
     elif match["architecture"] == "graph":
         model = GraphBasedModel(
             tag_set=tag_set,
+            upos_set=None if match["pos"] is None else torch.load(path.join(model_dirname, f"{match['dataset']}_upos_set.pt")),
             transformer_path=transformer_path,
             space_token=space_token,
             augment=match["augmented"] is not None

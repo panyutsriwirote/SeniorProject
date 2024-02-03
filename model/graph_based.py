@@ -1,4 +1,4 @@
-from torch.nn import Module, Linear, Dropout, CrossEntropyLoss, Parameter
+from torch.nn import Module, Linear, Dropout, CrossEntropyLoss, Parameter, Embedding
 from torch import Tensor
 from transformers import AutoTokenizer, AutoModel
 from dataclasses import dataclass
@@ -54,6 +54,7 @@ class GraphBasedModel(Module):
         self,
         *,
         tag_set: list[str],
+        upos_set: list[str] | None,
         transformer_path: str,
         space_token: str,
         augment: bool
@@ -76,15 +77,24 @@ class GraphBasedModel(Module):
         # ROOT embeddings
         self.root_embedding = Parameter(torch.zeros(1, hidden_size))
         self.root_embedding.data.normal_(mean=0.0, std=initializer_range)
+        # POS embeddings
+        if upos_set is not None:
+            upos_set = ["<ROOT>"] + upos_set
+            self.id_to_pos = dict(enumerate(upos_set))
+            self.pos_to_id = {pos: i for i, pos in enumerate(upos_set)}
+            self.pos_embeddings = Embedding(len(upos_set), hidden_size)
+            self.use_pos = True
+            additional_dim = hidden_size
+        else:
+            self.use_pos = False
+            additional_dim = 0
         # Feature augmentation
-        self.augmented = augment
         if augment:
             kernel_sizes = [2, 3, 4, 5]
             each_kernel_size_output_dim = hidden_size // len(kernel_sizes)
-            additional_dim = (len(kernel_sizes) * each_kernel_size_output_dim ) + hidden_size
+            additional_dim += (len(kernel_sizes) * each_kernel_size_output_dim) + hidden_size
             self.super_token_embeddings = SuperTokenEmbedding(hidden_size, kernel_sizes, each_kernel_size_output_dim)
-        else:
-            additional_dim = 0
+        self.augmented = augment
         # FFNN
         feature_size = hidden_size + additional_dim
         classifier_dropout = (
@@ -138,6 +148,23 @@ class GraphBasedModel(Module):
             ])
             for i, select_index in enumerate(select_indice)
         ]
+        # POS embeddings
+        if self.use_pos:
+            upos_tags = [
+                torch.tensor(
+                    [self.pos_to_id["<ROOT>"]] +
+                    [self.pos_to_id[token.upos] for token in tree]
+                ).to(self.device)
+                for tree in trees
+            ]
+            pos_embeddings = [self.pos_embeddings(tags) for tags in upos_tags]
+            pooled_encodings = [
+                torch.cat([
+                    pooled_encoding, # Token embedding
+                    pos_embedding # POS embedding
+                ], dim=1)
+                for pooled_encoding, pos_embedding in zip(pooled_encodings, pos_embeddings)
+            ]
         # Feature augmentation
         if self.augmented:
             return [
