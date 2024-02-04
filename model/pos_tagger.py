@@ -5,10 +5,11 @@ from torch import Tensor
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from dataclasses import dataclass
 from typing import Any
+from os import path
 from sklearn.metrics import classification_report
 from treebank.tree import Tree
 from treebank import TreeBank
-import torch
+import torch, re
 
 @dataclass
 class POSTaggerOutput:
@@ -153,6 +154,22 @@ def train_pos_tagger(
     test_metrics = pos_tagger.evaluate(test_set)
     print(f"TEST: {test_metrics['macro avg']['f1-score']}")
     return test_metrics
+
+POS_TAGGER_FILENAME_PATTERN = re.compile(r"(?P<dataset>.+)_pos_tagger\.pt")
+POS_TAGGER_TRANSFORMER_PATH = "clicknext/phayathaibert"
+def load_pos_tagger(pos_tagger_path: str, space_token: str):
+    pos_tagger_dirname, pos_tagger_filename = path.split(pos_tagger_path)
+    match = POS_TAGGER_FILENAME_PATTERN.fullmatch(pos_tagger_filename)
+    if not match:
+        raise ValueError(f"Invalid model file name: {pos_tagger_filename!r}")
+    upos_set = torch.load(path.join(pos_tagger_dirname, f"{match['dataset']}_upos_set.pt"))
+    pos_tagger = POSTagger(
+        upos_set=upos_set,
+        transformer_path=POS_TAGGER_TRANSFORMER_PATH,
+        space_token=space_token
+    )
+    print(pos_tagger.load_state_dict(torch.load(pos_tagger_path), strict=False))
+    return pos_tagger.eval()
 
 def tag_treebank(treebank: TreeBank, pos_tagger: POSTagger):
     new_treebank = treebank.copy()

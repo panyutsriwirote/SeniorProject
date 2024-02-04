@@ -3,6 +3,7 @@ from .graph_based import GraphBasedModel
 from .pos_tagger import (
     POSTagger,
     train_pos_tagger,
+    load_pos_tagger,
     tag_treebank
 )
 from .utils import (
