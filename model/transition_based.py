@@ -66,8 +66,12 @@ class TransitionBasedModel(Module):
         if augment:
             kernel_sizes = [2, 3, 4, 5]
             each_kernel_size_output_dim = hidden_size // len(kernel_sizes)
+            self.super_token_embeddings = SuperTokenEmbedding(
+                embed_dim=hidden_size + additional_dim,
+                kernel_sizes=kernel_sizes,
+                each_kernel_size_output_dim=each_kernel_size_output_dim
+            )
             additional_dim += (len(kernel_sizes) * each_kernel_size_output_dim) + hidden_size
-            self.super_token_embeddings = SuperTokenEmbedding(hidden_size, kernel_sizes, each_kernel_size_output_dim)
         self.augmented = augment
         # Classifier
         feature_size = (hidden_size + additional_dim) * 3
