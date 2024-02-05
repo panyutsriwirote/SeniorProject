@@ -6,10 +6,11 @@ from transformers import AutoTokenizer, AutoModelForTokenClassification
 from dataclasses import dataclass
 from typing import Any
 from os import path
+from tqdm.auto import tqdm
 from sklearn.metrics import classification_report
+import torch, re
 from treebank.tree import Tree
 from treebank import TreeBank
-import torch, re
 
 @dataclass
 class POSTaggerOutput:
@@ -133,15 +134,16 @@ def train_pos_tagger(
         print(f"EPOCH: {i}")
         start, stop = 0, batch_size
         batch = [tree for tree in train_set[start:stop]]
+        progress_bar = tqdm(total=num_batches_per_epoch)
         while batch:
             loss = pos_tagger(batch).loss
-            print(loss.item())
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             start, stop = stop, stop + batch_size
             batch = [tree for tree in train_set[start:stop]]
+            progress_bar.update()
         pos_tagger.eval()
         dev_metrics = pos_tagger.evaluate(dev_set)
         print(f"DEV: {dev_metrics['macro avg']['f1-score']}")

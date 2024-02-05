@@ -1,6 +1,7 @@
 from torch.optim import AdamW
 from transformers import get_scheduler
 from os import path
+from tqdm.auto import tqdm
 import re, torch
 from treebank import TreeBank
 from .transition_based import TransitionBasedModel
@@ -50,15 +51,16 @@ def train_model(
         print(f"EPOCH: {i}")
         start, stop = 0, batch_size
         batch = [tree for tree in train_set[start:stop] if is_graph_based or tree.is_projective]
+        progress_bar = tqdm(total=num_batches_per_epoch)
         while batch:
             loss = model(batch).loss
-            print(loss.item())
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
             start, stop = stop, stop + batch_size
             batch = [tree for tree in train_set[start:stop] if is_graph_based or tree.is_projective]
+            progress_bar.update()
         model.eval()
         dev_metrics = model.evaluate(dev_set)
         print(f"DEV: {dev_metrics}")
