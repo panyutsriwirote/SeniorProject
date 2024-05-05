@@ -36,16 +36,13 @@ class Biaffine(Module):
     def __init__(self, hidden_size: int, initializer_range: float, num_labels: int | None = None):
         super().__init__()
         if num_labels is None:
-            self.U = Parameter(torch.zeros(hidden_size, hidden_size))
+            self.U = Parameter(torch.zeros(hidden_size + 1, hidden_size))
         else:
-            self.U = Parameter(torch.zeros(num_labels, hidden_size, hidden_size))
-        # self.W = Parameter(torch.zeros(hidden_size, hidden_size))
-        # self.b = Parameter(torch.zeros(1))
+            self.U = Parameter(torch.zeros(num_labels, hidden_size + 1, hidden_size))
         self.U.data.normal_(mean=0.0, std=initializer_range)
-        # self.W.data.normal_(mean=0.0, std=initializer_range)
-        # self.b.data.normal_(mean=0.0, std=initializer_range)
 
     def forward(self, head: Tensor, dep: Tensor):
+        head = torch.cat([head, torch.ones(head.shape[0], 1).to(head.device)], dim=1) # pad with ones
         return head @ self.U @ dep.transpose(0, 1)
 
 class GraphBasedModel(Module):
