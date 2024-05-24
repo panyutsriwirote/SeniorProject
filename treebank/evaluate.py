@@ -7,7 +7,13 @@ def evaluate_conllu(*, pred_path: str, gold_path: str):
     total = 0
     with open(pred_path, encoding="utf-8") as pred_file,\
         open(gold_path, encoding="utf-8") as gold_file:
-        for pred, gold in zip(pred_file, gold_file):
+        while True:
+            pred, gold = pred_file.readline(), gold_file.readline()
+            if pred == gold == '':
+                break
+            if gold.startswith('#') and not pred.startswith('#'):
+                while gold.startswith('#'):
+                    gold = gold_file.readline()
             if pred == '\n' or pred.startswith('#'):
                 assert pred == gold, f"File mismatch:\n{pred}\n{gold}"
                 continue
