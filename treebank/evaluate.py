@@ -17,8 +17,9 @@ def evaluate_conllu(*, pred_path: str, gold_path: str):
             if pred == '\n' or pred.startswith('#'):
                 assert pred == gold, f"File mismatch:\n{pred}\n{gold}"
                 continue
-            _, _, _, _, _, _, arg_pred, label_pred, _, _ = pred.split('\t')
-            _, _, _, _, _, _, arg_gold, label_gold, _, _ = gold.split('\t')
+            pred_id, pred_form, _, _, _, _, arg_pred, label_pred, _, _ = pred.split('\t')
+            gold_id, gold_form, _, _, _, _, arg_gold, label_gold, _, _ = gold.split('\t')
+            assert pred_id == gold_id and pred_form == gold_form, f"File mismatch:\n{pred_id}\t{pred_form}\n{gold_id}\t{gold_form}"
             total += 1
             if arg_pred == arg_gold:
                 arg_correct += 1
